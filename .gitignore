@@ -1,0 +1,8 @@
+# Archivos de coordinación locales solicitados para esta entrega.
+docs/
+
+# Archivos generados por Python y herramientas de desarrollo.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
