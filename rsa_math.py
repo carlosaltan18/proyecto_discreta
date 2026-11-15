@@ -109,18 +109,20 @@ def validate_parameters(
     prime_q = parse_integer(q, "q")
     exponent = parse_integer(e, "e")
 
+    # El rango de n descarta de inmediato números enormes antes de probar
+    # primalidad por división de prueba (que bloquearía la interfaz).
+    n = prime_p * prime_q
+    if not 126126 < n < 1000000:
+        raise ValidationError(
+            f"n = p × q = {n} debe cumplir 126126 < n < 1000000."
+        )
+
     if not is_prime(prime_p):
         raise ValidationError("p debe ser primo.")
     if not is_prime(prime_q):
         raise ValidationError("q debe ser primo.")
     if prime_p == prime_q:
         raise ValidationError("p y q deben ser primos distintos.")
-
-    n = prime_p * prime_q
-    if not 126126 < n < 1000000:
-        raise ValidationError(
-            f"n = p × q = {n} debe cumplir 126126 < n < 1000000."
-        )
 
     phi = (prime_p - 1) * (prime_q - 1)
     if exponent <= 1:

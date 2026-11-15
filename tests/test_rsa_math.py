@@ -27,6 +27,10 @@ class MathTests(unittest.TestCase):
             with self.subTest(p=p, q=q, e=e), self.assertRaises(ValidationError):
                 validate_parameters(p, q, e)
 
+    def test_out_of_range_modulus_rejected_before_primality(self) -> None:
+        with self.assertRaisesRegex(ValidationError, "126126 < n < 1000000"):
+            validate_parameters(10**100 + 39, 373, 17)
+
 
 if __name__ == "__main__":
     unittest.main()
