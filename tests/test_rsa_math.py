@@ -32,6 +32,11 @@ class MathTests(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError, "126126 < n < 1000000"):
             validate_parameters(10**100 + 39, 373, 17)
 
+    def test_public_exponent_above_phi_is_allowed_when_coprime(self) -> None:
+        parameters = validate_parameters("367", "373", "136153")
+        self.assertEqual(parameters.e, parameters.phi + 1)
+        self.assertEqual(gcd(parameters.e, parameters.phi), 1)
+
     def test_modular_trace_explains_the_same_calculation(self) -> None:
         modulus = 136891
         result, steps = modular_power_trace(82083, 17, modulus)

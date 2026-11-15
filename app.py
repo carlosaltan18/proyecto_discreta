@@ -22,6 +22,7 @@ class RSAApp(tk.Tk):
         self.e = tk.StringVar()
         self.ciphertext = tk.StringVar()
         self.length = tk.StringVar()
+        self.output_length = tk.StringVar()
         self.status = tk.StringVar(value="Ingrese un mensaje y los parámetros para encriptar.")
         self.summary = tk.StringVar(value="Los resultados se mostrarán aquí.")
         self.latest_result: EncryptionResult | None = None
@@ -112,9 +113,21 @@ class RSAApp(tk.Tk):
         ttk.Button(buttons, text="Cargar ejemplo", command=self._load_example).grid(
             row=0, column=1, padx=(8, 0)
         )
-        ttk.Button(buttons, text="Copiar C y L a parte 2", command=self._send_to_decryption).grid(
-            row=0, column=2, padx=(8, 0)
+        self.copy_c_button = ttk.Button(
+            buttons, text="Copiar C", command=self._copy_ciphertext, state="disabled"
         )
+        self.copy_c_button.grid(row=0, column=2, padx=(8, 0))
+        self.copy_l_button = ttk.Button(
+            buttons, text="Copiar L", command=self._copy_length, state="disabled"
+        )
+        self.copy_l_button.grid(row=0, column=3, padx=(8, 0))
+        self.send_button = ttk.Button(
+            buttons,
+            text="Pasar a parte 2",
+            command=self._send_to_decryption,
+            state="disabled",
+        )
+        self.send_button.grid(row=0, column=4, padx=(8, 0))
 
         output_frame = ttk.Labelframe(tab, text="Resultado y proceso", padding=10)
         output_frame.grid(row=3, column=0, sticky="nsew")
@@ -130,7 +143,15 @@ class RSAApp(tk.Tk):
         ).grid(
             row=1, column=0, sticky="w", pady=(0, 7)
         )
-        ttk.Label(output_frame, text="Cifrado C:").grid(row=2, column=0, sticky="w")
+        result_labels = ttk.Frame(output_frame)
+        result_labels.grid(row=2, column=0, sticky="ew")
+        ttk.Label(result_labels, text="Cifrado C:").grid(row=0, column=0, sticky="w")
+        ttk.Label(result_labels, text="Longitud original L:").grid(
+            row=0, column=1, sticky="w", padx=(30, 6)
+        )
+        ttk.Entry(
+            result_labels, textvariable=self.output_length, width=10, state="readonly"
+        ).grid(row=0, column=2, sticky="w")
         self.cipher_output = ScrolledText(
             output_frame, height=2, font=("Consolas", 11), wrap="word", state="disabled"
         )
@@ -221,6 +242,10 @@ class RSAApp(tk.Tk):
             return
 
         self.latest_result = result
+        self.output_length.set(str(result.original_length))
+        self.copy_c_button.configure(state="normal")
+        self.copy_l_button.configure(state="normal")
+        self.send_button.configure(state="normal")
         self.status.set("Mensaje encriptado correctamente.")
         self.summary.set(
             f"n = {result.parameters.n} · φ = {result.parameters.phi} · MCD(e, φ) = 1 · "
@@ -249,6 +274,10 @@ class RSAApp(tk.Tk):
 
     def _clear_output(self) -> None:
         self.latest_result = None
+        self.output_length.set("")
+        self.copy_c_button.configure(state="disabled")
+        self.copy_l_button.configure(state="disabled")
+        self.send_button.configure(state="disabled")
         self.summary.set("Los resultados se mostrarán aquí.")
         self._set_cipher_output("")
         self._set_trace_output("Seleccione un bloque después de encriptar.")
@@ -303,12 +332,27 @@ class RSAApp(tk.Tk):
         self._set_trace_output("\n".join(lines))
 
     def _load_example(self) -> None:
+        self._clear_output()
         self.p.set("367")
         self.q.set("373")
         self.e.set("17")
         self.message_input.delete("1.0", "end")
         self.message_input.insert("1.0", "RSA")
         self.status.set("Ejemplo cargado. Pulse Encriptar.")
+
+    def _copy_ciphertext(self) -> None:
+        if self.latest_result is None:
+            return
+        self.clipboard_clear()
+        self.clipboard_append(self.latest_result.ciphertext)
+        self.status.set("C copiado al portapapeles.")
+
+    def _copy_length(self) -> None:
+        if self.latest_result is None:
+            return
+        self.clipboard_clear()
+        self.clipboard_append(str(self.latest_result.original_length))
+        self.status.set("L copiada al portapapeles.")
 
     def _send_to_decryption(self) -> None:
         if self.latest_result is None:
