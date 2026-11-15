@@ -21,6 +21,19 @@ class RSAParameters:
     phi: int
 
 
+@dataclass(frozen=True)
+class ModularPowerStep:
+    """Estado de una iteración de exponenciación por cuadrados sucesivos."""
+
+    iteration: int
+    exponent_before: int
+    result_before: int
+    base_before: int
+    multiplied: bool
+    result_after: int
+    base_after: int
+
+
 def parse_integer(value: int | str, name: str) -> int:
     """Convierte valores de la interfaz a enteros con un error legible."""
     if isinstance(value, bool):
@@ -86,6 +99,24 @@ def modular_inverse(value: int, modulus: int) -> int:
 
 def modular_power(base: int, exponent: int, modulus: int) -> int:
     """Exponenciación binaria con reducción de módulo en cada paso."""
+    return _calculate_modular_power(base, exponent, modulus, None)
+
+
+def modular_power_trace(
+    base: int, exponent: int, modulus: int
+) -> tuple[int, tuple[ModularPowerStep, ...]]:
+    """Calcula la misma potencia y devuelve cada paso para explicarla."""
+    steps: list[ModularPowerStep] = []
+    result = _calculate_modular_power(base, exponent, modulus, steps)
+    return result, tuple(steps)
+
+
+def _calculate_modular_power(
+    base: int,
+    exponent: int,
+    modulus: int,
+    steps: list[ModularPowerStep] | None,
+) -> int:
     if exponent < 0:
         raise ValueError("El exponente no puede ser negativo.")
     if modulus <= 0:
@@ -93,11 +124,29 @@ def modular_power(base: int, exponent: int, modulus: int) -> int:
 
     result = 1 % modulus
     base %= modulus
+    iteration = 0
     while exponent:
-        if exponent % 2:
+        iteration += 1
+        exponent_before = exponent
+        result_before = result
+        base_before = base
+        multiplied = exponent % 2 == 1
+        if multiplied:
             result = (result * base) % modulus
         base = (base * base) % modulus
         exponent //= 2
+        if steps is not None:
+            steps.append(
+                ModularPowerStep(
+                    iteration,
+                    exponent_before,
+                    result_before,
+                    base_before,
+                    multiplied,
+                    result,
+                    base,
+                )
+            )
     return result
 
 
