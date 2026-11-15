@@ -1,0 +1,262 @@
+"""Interfaz de la parte 1: encriptación RSA y preparación de desencriptación."""
+
+import tkinter as tk
+from tkinter import messagebox, ttk
+from tkinter.scrolledtext import ScrolledText
+
+from rsa_encrypt import EncryptionResult, encrypt
+from rsa_math import ValidationError
+
+
+class RSAApp(tk.Tk):
+    """Aplicación de escritorio que comparte entradas con ambas operaciones."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.title("MM2015 · Proyecto de criptografía RSA")
+        self.geometry("1040x780")
+        self.minsize(850, 650)
+
+        self.p = tk.StringVar()
+        self.q = tk.StringVar()
+        self.e = tk.StringVar()
+        self.ciphertext = tk.StringVar()
+        self.length = tk.StringVar()
+        self.status = tk.StringVar(value="Ingrese un mensaje y los parámetros para encriptar.")
+        self.summary = tk.StringVar(value="Los resultados se mostrarán aquí.")
+        self.latest_result: EncryptionResult | None = None
+
+        self._configure_style()
+        self._build_window()
+
+    def _configure_style(self) -> None:
+        style = ttk.Style(self)
+        if "clam" in style.theme_names():
+            style.theme_use("clam")
+        style.configure("TFrame", background="#f4f7fb")
+        style.configure("TLabel", background="#f4f7fb", foreground="#1a2638")
+        style.configure("Title.TLabel", font=("Segoe UI", 20, "bold"), foreground="#174b85")
+        style.configure("Help.TLabel", font=("Segoe UI", 10), foreground="#526176")
+        style.configure("Status.TLabel", font=("Segoe UI", 10, "bold"), foreground="#174b85")
+        style.configure("TLabelframe", background="#f4f7fb")
+        style.configure("TLabelframe.Label", background="#f4f7fb", font=("Segoe UI", 11, "bold"))
+        style.configure("TButton", font=("Segoe UI", 10), padding=7)
+        style.configure("TNotebook", background="#f4f7fb")
+        style.configure("TNotebook.Tab", font=("Segoe UI", 10), padding=(15, 7))
+        style.configure("Treeview", font=("Consolas", 10), rowheight=26)
+        style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
+
+    def _build_window(self) -> None:
+        self.configure(background="#f4f7fb")
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        shell = ttk.Frame(self, padding=16)
+        shell.grid(sticky="nsew")
+        shell.columnconfigure(0, weight=1)
+        shell.rowconfigure(2, weight=1)
+
+        ttk.Label(shell, text="Criptografía RSA", style="Title.TLabel").grid(
+            row=0, column=0, sticky="w"
+        )
+        ttk.Label(
+            shell,
+            text="MM2015 · ASCII imprimible · dos caracteres por bloque",
+            style="Help.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(0, 12))
+
+        self.tabs = ttk.Notebook(shell)
+        self.tabs.grid(row=2, column=0, sticky="nsew")
+        self.encryption_tab = ttk.Frame(self.tabs, padding=12)
+        self.decryption_tab = ttk.Frame(self.tabs, padding=12)
+        self.tabs.add(self.encryption_tab, text="Encriptar · parte 1")
+        self.tabs.add(self.decryption_tab, text="Desencriptar · parte 2")
+        self._build_encryption_tab()
+        self._build_decryption_tab()
+
+    def _build_encryption_tab(self) -> None:
+        tab = self.encryption_tab
+        tab.columnconfigure(0, weight=1)
+        tab.rowconfigure(3, weight=1)
+
+        key_frame = ttk.Labelframe(tab, text="Parámetros RSA", padding=10)
+        key_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        for index, (label, variable) in enumerate(
+            (("p (primo)", self.p), ("q (primo)", self.q), ("e", self.e))
+        ):
+            ttk.Label(key_frame, text=label).grid(
+                row=0, column=index * 2, sticky="w", padx=(0 if index == 0 else 16, 6)
+            )
+            ttk.Entry(key_frame, textvariable=variable, width=17).grid(
+                row=0, column=index * 2 + 1, sticky="w"
+            )
+        ttk.Label(
+            key_frame,
+            text="Se requiere 126126 < p × q < 1000000 y MCD(e, φ) = 1.",
+            style="Help.TLabel",
+        ).grid(row=1, column=0, columnspan=6, sticky="w", pady=(8, 0))
+
+        input_frame = ttk.Labelframe(tab, text="Mensaje M", padding=10)
+        input_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        input_frame.columnconfigure(0, weight=1)
+        ttk.Label(
+            input_frame,
+            text="ASCII 032 a 126. Los espacios iniciales, finales y consecutivos se conservan.",
+            style="Help.TLabel",
+        ).grid(row=0, column=0, sticky="w", pady=(0, 6))
+        self.message_input = ScrolledText(input_frame, height=4, font=("Consolas", 11), wrap="word")
+        self.message_input.grid(row=1, column=0, sticky="ew")
+
+        buttons = ttk.Frame(tab)
+        buttons.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+        ttk.Button(buttons, text="Encriptar", command=self._encrypt).grid(row=0, column=0)
+        ttk.Button(buttons, text="Cargar ejemplo", command=self._load_example).grid(
+            row=0, column=1, padx=(8, 0)
+        )
+        ttk.Button(buttons, text="Copiar C y L a parte 2", command=self._send_to_decryption).grid(
+            row=0, column=2, padx=(8, 0)
+        )
+
+        output_frame = ttk.Labelframe(tab, text="Resultado y proceso", padding=10)
+        output_frame.grid(row=3, column=0, sticky="nsew")
+        output_frame.columnconfigure(0, weight=1)
+        output_frame.rowconfigure(4, weight=1)
+        ttk.Label(
+            output_frame, textvariable=self.status, style="Status.TLabel", wraplength=780
+        ).grid(
+            row=0, column=0, sticky="w", pady=(0, 6)
+        )
+        ttk.Label(
+            output_frame, textvariable=self.summary, style="Help.TLabel", wraplength=780
+        ).grid(
+            row=1, column=0, sticky="w", pady=(0, 7)
+        )
+        ttk.Label(output_frame, text="Cifrado C:").grid(row=2, column=0, sticky="w")
+        self.cipher_output = ScrolledText(
+            output_frame, height=2, font=("Consolas", 11), wrap="word", state="disabled"
+        )
+        self.cipher_output.grid(row=3, column=0, sticky="ew", pady=(3, 8))
+
+        columns = ("pair", "ascii", "plain", "cipher")
+        self.blocks_table = ttk.Treeview(
+            output_frame, columns=columns, show="headings", height=8
+        )
+        for column, heading, width in (
+            ("pair", "Pareja", 130),
+            ("ascii", "Códigos ASCII", 180),
+            ("plain", "m (6 dígitos)", 160),
+            ("cipher", "c (6 dígitos)", 160),
+        ):
+            self.blocks_table.heading(column, text=heading)
+            self.blocks_table.column(column, width=width, minwidth=100)
+        self.blocks_table.grid(row=4, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(output_frame, orient="vertical", command=self.blocks_table.yview)
+        scrollbar.grid(row=4, column=1, sticky="ns")
+        self.blocks_table.configure(yscrollcommand=scrollbar.set)
+        ttk.Label(
+            output_frame,
+            text="La pareja se muestra con comillas para que los espacios sean visibles.",
+            style="Help.TLabel",
+        ).grid(row=5, column=0, sticky="w", pady=(5, 0))
+
+    def _build_decryption_tab(self) -> None:
+        """Entradas compartidas que la segunda persona conectará a rsa_decrypt.py."""
+        tab = self.decryption_tab
+        tab.columnconfigure(0, weight=1)
+        ttk.Label(
+            tab,
+            text="Esta pestaña está preparada para la segunda parte del equipo.",
+            style="Status.TLabel",
+        ).grid(row=0, column=0, sticky="w", pady=(0, 10))
+
+        frame = ttk.Labelframe(tab, text="Entradas de desencriptación", padding=12)
+        frame.grid(row=1, column=0, sticky="ew")
+        frame.columnconfigure(1, weight=1)
+        for row, (label, variable) in enumerate(
+            (
+                ("p", self.p),
+                ("q", self.q),
+                ("e", self.e),
+                ("C (bloques de 6 dígitos)", self.ciphertext),
+                ("L (longitud original)", self.length),
+            )
+        ):
+            ttk.Label(frame, text=label).grid(row=row, column=0, sticky="w", pady=6, padx=(0, 12))
+            ttk.Entry(frame, textvariable=variable).grid(row=row, column=1, sticky="ew", pady=6)
+
+        ttk.Button(tab, text="Desencriptar · pendiente de parte 2", state="disabled").grid(
+            row=2, column=0, sticky="w", pady=(10, 0)
+        )
+        ttk.Label(
+            tab,
+            text="La integración, los resultados y las validaciones de C y L están asignados al segundo integrante.",
+            style="Help.TLabel",
+        ).grid(row=3, column=0, sticky="w", pady=(8, 0))
+
+    def _encrypt(self) -> None:
+        # end-1c elimina únicamente el salto implícito de Tk, no espacios del usuario.
+        message = self.message_input.get("1.0", "end-1c")
+        try:
+            result = encrypt(message, self.p.get(), self.q.get(), self.e.get())
+        except ValidationError as exc:
+            self._clear_output()
+            self.status.set(f"Error: {exc}")
+            messagebox.showerror("Datos inválidos", str(exc), parent=self)
+            return
+
+        self.latest_result = result
+        self.status.set("Mensaje encriptado correctamente.")
+        self.summary.set(
+            f"n = {result.parameters.n} · φ = {result.parameters.phi} · MCD(e, φ) = 1 · "
+            f"llave pública = ({result.parameters.e}, {result.parameters.n})\n"
+            f"L = {result.original_length} · relleno: {'sí' if result.filler_added else 'no'}"
+        )
+        self._set_cipher_output(result.ciphertext)
+        for item in self.blocks_table.get_children():
+            self.blocks_table.delete(item)
+        for block in result.blocks:
+            self.blocks_table.insert(
+                "",
+                "end",
+                values=(
+                    repr(block.pair),
+                    f"{block.ascii_codes[0]:03d} {block.ascii_codes[1]:03d}",
+                    block.plaintext_six_digits,
+                    block.ciphertext_six_digits,
+                ),
+            )
+
+    def _clear_output(self) -> None:
+        self.latest_result = None
+        self.summary.set("Los resultados se mostrarán aquí.")
+        self._set_cipher_output("")
+        for item in self.blocks_table.get_children():
+            self.blocks_table.delete(item)
+
+    def _set_cipher_output(self, value: str) -> None:
+        self.cipher_output.configure(state="normal")
+        self.cipher_output.delete("1.0", "end")
+        self.cipher_output.insert("1.0", value)
+        self.cipher_output.configure(state="disabled")
+
+    def _load_example(self) -> None:
+        self.p.set("367")
+        self.q.set("373")
+        self.e.set("17")
+        self.message_input.delete("1.0", "end")
+        self.message_input.insert("1.0", "RSA")
+        self.status.set("Ejemplo cargado. Pulse Encriptar.")
+
+    def _send_to_decryption(self) -> None:
+        if self.latest_result is None:
+            messagebox.showinfo("Sin resultado", "Primero encripte un mensaje.", parent=self)
+            return
+        self.p.set(str(self.latest_result.parameters.p))
+        self.q.set(str(self.latest_result.parameters.q))
+        self.e.set(str(self.latest_result.parameters.e))
+        self.ciphertext.set(self.latest_result.ciphertext)
+        self.length.set(str(self.latest_result.original_length))
+        self.tabs.select(self.decryption_tab)
+
+
+if __name__ == "__main__":
+    RSAApp().mainloop()
