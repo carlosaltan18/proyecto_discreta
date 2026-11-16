@@ -5,7 +5,7 @@ from tkinter import messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 
 from rsa_encrypt import EncryptionResult, encrypt
-from rsa_math import ValidationError
+from rsa_math import ValidationError, modular_power_trace
 
 
 class RSAApp(tk.Tk):
@@ -22,6 +22,7 @@ class RSAApp(tk.Tk):
         self.e = tk.StringVar()
         self.ciphertext = tk.StringVar()
         self.length = tk.StringVar()
+        self.output_length = tk.StringVar()
         self.status = tk.StringVar(value="Ingrese un mensaje y los parámetros para encriptar.")
         self.summary = tk.StringVar(value="Los resultados se mostrarán aquí.")
         self.latest_result: EncryptionResult | None = None
@@ -112,9 +113,21 @@ class RSAApp(tk.Tk):
         ttk.Button(buttons, text="Cargar ejemplo", command=self._load_example).grid(
             row=0, column=1, padx=(8, 0)
         )
-        ttk.Button(buttons, text="Copiar C y L a parte 2", command=self._send_to_decryption).grid(
-            row=0, column=2, padx=(8, 0)
+        self.copy_c_button = ttk.Button(
+            buttons, text="Copiar C", command=self._copy_ciphertext, state="disabled"
         )
+        self.copy_c_button.grid(row=0, column=2, padx=(8, 0))
+        self.copy_l_button = ttk.Button(
+            buttons, text="Copiar L", command=self._copy_length, state="disabled"
+        )
+        self.copy_l_button.grid(row=0, column=3, padx=(8, 0))
+        self.send_button = ttk.Button(
+            buttons,
+            text="Pasar a parte 2",
+            command=self._send_to_decryption,
+            state="disabled",
+        )
+        self.send_button.grid(row=0, column=4, padx=(8, 0))
 
         output_frame = ttk.Labelframe(tab, text="Resultado y proceso", padding=10)
         output_frame.grid(row=3, column=0, sticky="nsew")
@@ -130,15 +143,34 @@ class RSAApp(tk.Tk):
         ).grid(
             row=1, column=0, sticky="w", pady=(0, 7)
         )
-        ttk.Label(output_frame, text="Cifrado C:").grid(row=2, column=0, sticky="w")
+        result_labels = ttk.Frame(output_frame)
+        result_labels.grid(row=2, column=0, sticky="ew")
+        ttk.Label(result_labels, text="Cifrado C:").grid(row=0, column=0, sticky="w")
+        ttk.Label(result_labels, text="Longitud original L:").grid(
+            row=0, column=1, sticky="w", padx=(30, 6)
+        )
+        ttk.Entry(
+            result_labels, textvariable=self.output_length, width=10, state="readonly"
+        ).grid(row=0, column=2, sticky="w")
         self.cipher_output = ScrolledText(
             output_frame, height=2, font=("Consolas", 11), wrap="word", state="disabled"
         )
         self.cipher_output.grid(row=3, column=0, sticky="ew", pady=(3, 8))
 
+        self.detail_tabs = ttk.Notebook(output_frame)
+        self.detail_tabs.grid(row=4, column=0, sticky="nsew")
+        blocks_panel = ttk.Frame(self.detail_tabs)
+        trace_panel = ttk.Frame(self.detail_tabs)
+        self.detail_tabs.add(blocks_panel, text="Bloques y códigos ASCII")
+        self.detail_tabs.add(trace_panel, text="Cálculo modular")
+        blocks_panel.columnconfigure(0, weight=1)
+        blocks_panel.rowconfigure(0, weight=1)
+        trace_panel.columnconfigure(0, weight=1)
+        trace_panel.rowconfigure(0, weight=1)
+
         columns = ("pair", "ascii", "plain", "cipher")
         self.blocks_table = ttk.Treeview(
-            output_frame, columns=columns, show="headings", height=8
+            blocks_panel, columns=columns, show="headings", height=8
         )
         for column, heading, width in (
             ("pair", "Pareja", 130),
@@ -148,13 +180,19 @@ class RSAApp(tk.Tk):
         ):
             self.blocks_table.heading(column, text=heading)
             self.blocks_table.column(column, width=width, minwidth=100)
-        self.blocks_table.grid(row=4, column=0, sticky="nsew")
-        scrollbar = ttk.Scrollbar(output_frame, orient="vertical", command=self.blocks_table.yview)
-        scrollbar.grid(row=4, column=1, sticky="ns")
+        self.blocks_table.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(blocks_panel, orient="vertical", command=self.blocks_table.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
         self.blocks_table.configure(yscrollcommand=scrollbar.set)
+        self.blocks_table.bind("<<TreeviewSelect>>", self._show_selected_trace)
+        self.trace_output = ScrolledText(
+            trace_panel, font=("Consolas", 10), wrap="word", state="disabled"
+        )
+        self.trace_output.grid(row=0, column=0, sticky="nsew")
+        self._set_trace_output("Seleccione un bloque después de encriptar.")
         ttk.Label(
             output_frame,
-            text="La pareja se muestra con comillas para que los espacios sean visibles.",
+            text="Seleccione una fila para ver sus cuadrados sucesivos. Las comillas hacen visibles los espacios.",
             style="Help.TLabel",
         ).grid(row=5, column=0, sticky="w", pady=(5, 0))
 
@@ -204,6 +242,10 @@ class RSAApp(tk.Tk):
             return
 
         self.latest_result = result
+        self.output_length.set(str(result.original_length))
+        self.copy_c_button.configure(state="normal")
+        self.copy_l_button.configure(state="normal")
+        self.send_button.configure(state="normal")
         self.status.set("Mensaje encriptado correctamente.")
         self.summary.set(
             f"n = {result.parameters.n} · φ = {result.parameters.phi} · MCD(e, φ) = 1 · "
@@ -224,11 +266,21 @@ class RSAApp(tk.Tk):
                     block.ciphertext_six_digits,
                 ),
             )
+        if result.blocks:
+            self.blocks_table.selection_set(self.blocks_table.get_children()[0])
+            self._show_selected_trace()
+        else:
+            self._set_trace_output("El mensaje vacío no produce bloques.")
 
     def _clear_output(self) -> None:
         self.latest_result = None
+        self.output_length.set("")
+        self.copy_c_button.configure(state="disabled")
+        self.copy_l_button.configure(state="disabled")
+        self.send_button.configure(state="disabled")
         self.summary.set("Los resultados se mostrarán aquí.")
         self._set_cipher_output("")
+        self._set_trace_output("Seleccione un bloque después de encriptar.")
         for item in self.blocks_table.get_children():
             self.blocks_table.delete(item)
 
@@ -238,13 +290,69 @@ class RSAApp(tk.Tk):
         self.cipher_output.insert("1.0", value)
         self.cipher_output.configure(state="disabled")
 
+    def _set_trace_output(self, value: str) -> None:
+        self.trace_output.configure(state="normal")
+        self.trace_output.delete("1.0", "end")
+        self.trace_output.insert("1.0", value)
+        self.trace_output.configure(state="disabled")
+
+    def _show_selected_trace(self, _event: tk.Event | None = None) -> None:
+        if self.latest_result is None or not self.blocks_table.selection():
+            return
+        selected = self.blocks_table.selection()[0]
+        block = self.latest_result.blocks[self.blocks_table.index(selected)]
+        parameters = self.latest_result.parameters
+        ciphertext, steps = modular_power_trace(
+            block.numeric_plaintext, parameters.e, parameters.n
+        )
+        lines = [
+            f"Bloque {block.position}: {block.pair!r} = {block.plaintext_six_digits}",
+            f"c = m^e mod n = {block.numeric_plaintext}^{parameters.e} mod {parameters.n}",
+            "Inicio: acumulador = 1; base = m mod n.",
+            "",
+        ]
+        for step in steps:
+            lines.append(
+                f"Paso {step.iteration}: exponente = {step.exponent_before} "
+                f"({'impar' if step.multiplied else 'par'})"
+            )
+            if step.multiplied:
+                lines.append(
+                    f"  acumulador = ({step.result_before} × {step.base_before}) "
+                    f"mod {parameters.n} = {step.result_after}"
+                )
+            else:
+                lines.append(f"  acumulador = {step.result_before} (no se multiplica)")
+            lines.append(
+                f"  base siguiente = ({step.base_before} × {step.base_before}) "
+                f"mod {parameters.n} = {step.base_after}; "
+                f"exponente siguiente = {step.exponent_before // 2}"
+            )
+        lines.extend(("", f"Resultado: c = {ciphertext:06d}"))
+        self._set_trace_output("\n".join(lines))
+
     def _load_example(self) -> None:
+        self._clear_output()
         self.p.set("367")
         self.q.set("373")
         self.e.set("17")
         self.message_input.delete("1.0", "end")
         self.message_input.insert("1.0", "RSA")
         self.status.set("Ejemplo cargado. Pulse Encriptar.")
+
+    def _copy_ciphertext(self) -> None:
+        if self.latest_result is None:
+            return
+        self.clipboard_clear()
+        self.clipboard_append(self.latest_result.ciphertext)
+        self.status.set("C copiado al portapapeles.")
+
+    def _copy_length(self) -> None:
+        if self.latest_result is None:
+            return
+        self.clipboard_clear()
+        self.clipboard_append(str(self.latest_result.original_length))
+        self.status.set("L copiada al portapapeles.")
 
     def _send_to_decryption(self) -> None:
         if self.latest_result is None:

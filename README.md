@@ -31,11 +31,13 @@ En la pestaña **Encriptar**, pulse **Cargar ejemplo** y luego **Encriptar**. El
 | Bloques antes de cifrar | `082083 065032` |
 | Cifrado `C` | `026054 123875` |
 
-Como `L` es impar, el programa agrega exactamente un espacio final antes de agrupar los caracteres. El botón **Copiar C y L a parte 2** lleva el cifrado y los parámetros a la pestaña que completará el otro integrante.
+Como `L` es impar, el programa agrega exactamente un espacio final antes de agrupar los caracteres. `C` y `L` aparecen por separado y tienen botones para copiarlos al portapapeles. El botón **Pasar a parte 2** lleva el último cifrado, su longitud y sus parámetros a la pestaña que completará el otro integrante.
+
+En **Bloques y códigos ASCII** se ven las parejas de caracteres, los códigos y los bloques antes y después de cifrar. Al seleccionar una fila, **Cálculo modular** muestra cada paso de los cuadrados sucesivos que produjo ese bloque cifrado.
 
 ## Archivos y contrato entre las partes
 
-- `rsa_math.py`: `validate_parameters(p, q, e)` devuelve `RSAParameters` con `p`, `q`, `e`, `n` y `phi`. También implementa `is_prime`, `gcd`, `modular_inverse` y `modular_power`. Los errores de entrada lanzan `ValidationError`.
+- `rsa_math.py`: `validate_parameters(p, q, e)` devuelve `RSAParameters` con `p`, `q`, `e`, `n` y `phi`. También implementa `is_prime`, `gcd`, `modular_inverse`, `modular_power` y `modular_power_trace` para explicar el cálculo. Los errores de entrada lanzan `ValidationError`.
 - `rsa_encrypt.py`: `encrypt(message, p, q, e)` devuelve `EncryptionResult` con `ciphertext`, `original_length`, `filler_added`, `padded_message`, `blocks` y `parameters`.
 - `app.py`: interfaz Tkinter. La segunda parte conectará la pestaña de desencriptación a su módulo de lógica.
 - `tests/`: pruebas de los algoritmos y de la encriptación.
