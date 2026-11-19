@@ -105,17 +105,3 @@ Las pruebas automatizadas cubren:
 - códigos ASCII recuperados fuera de rango y relleno impar incorrecto.
 
 Los errores se muestran en un diálogo comprensible, no cierran la ventana y limpian el resultado inválido de la operación correspondiente.
-
-## Guion mínimo para el video
-
-1. Mostrar el inicio de la aplicación.
-2. Cargar y encriptar el ejemplo `RSA`.
-3. Enseñar `C`, `L`, la tabla de bloques y una traza modular.
-4. Pasar los datos a la segunda pestaña y desencriptar.
-5. Comprobar `d = 8009`, el relleno retirado y `M = 'RSA'`.
-6. Repetir con un mensaje que tenga espacios iniciales o finales.
-7. Provocar al menos un error, por ejemplo un bloque `C` de cinco dígitos.
-
-El archivo o enlace accesible del video debe entregarse por el medio indicado en el curso.
-
-> Este RSA usa los parámetros pequeños exigidos por el curso y tiene fines educativos. No debe emplearse para proteger información real.
