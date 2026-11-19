@@ -1,9 +1,10 @@
-"""Interfaz de la parte 1: encriptación RSA y preparación de desencriptación."""
+"""Interfaz gráfica para encriptar y desencriptar mensajes con RSA."""
 
 import tkinter as tk
 from tkinter import messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 
+from rsa_decrypt import DecryptionResult, decrypt
 from rsa_encrypt import EncryptionResult, encrypt
 from rsa_math import ValidationError, modular_power_trace
 
@@ -25,7 +26,12 @@ class RSAApp(tk.Tk):
         self.output_length = tk.StringVar()
         self.status = tk.StringVar(value="Ingrese un mensaje y los parámetros para encriptar.")
         self.summary = tk.StringVar(value="Los resultados se mostrarán aquí.")
+        self.decryption_status = tk.StringVar(
+            value="Ingrese C, L y los parámetros para desencriptar."
+        )
+        self.decryption_summary = tk.StringVar(value="Los resultados se mostrarán aquí.")
         self.latest_result: EncryptionResult | None = None
+        self.latest_decryption_result: DecryptionResult | None = None
 
         self._configure_style()
         self._build_window()
@@ -197,17 +203,13 @@ class RSAApp(tk.Tk):
         ).grid(row=5, column=0, sticky="w", pady=(5, 0))
 
     def _build_decryption_tab(self) -> None:
-        """Entradas compartidas que la segunda persona conectará a rsa_decrypt.py."""
+        """Construye entradas, resultado, bloques y traza de desencriptación."""
         tab = self.decryption_tab
         tab.columnconfigure(0, weight=1)
-        ttk.Label(
-            tab,
-            text="Esta pestaña está preparada para la segunda parte del equipo.",
-            style="Status.TLabel",
-        ).grid(row=0, column=0, sticky="w", pady=(0, 10))
+        tab.rowconfigure(2, weight=1)
 
         frame = ttk.Labelframe(tab, text="Entradas de desencriptación", padding=12)
-        frame.grid(row=1, column=0, sticky="ew")
+        frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         frame.columnconfigure(1, weight=1)
         for row, (label, variable) in enumerate(
             (
@@ -221,14 +223,85 @@ class RSAApp(tk.Tk):
             ttk.Label(frame, text=label).grid(row=row, column=0, sticky="w", pady=6, padx=(0, 12))
             ttk.Entry(frame, textvariable=variable).grid(row=row, column=1, sticky="ew", pady=6)
 
-        ttk.Button(tab, text="Desencriptar · pendiente de parte 2", state="disabled").grid(
-            row=2, column=0, sticky="w", pady=(10, 0)
+        ttk.Label(
+            frame,
+            text="C usa bloques de seis dígitos separados por un espacio; L se ingresa por separado.",
+            style="Help.TLabel",
+        ).grid(row=5, column=0, columnspan=2, sticky="w", pady=(5, 0))
+
+        ttk.Button(tab, text="Desencriptar", command=self._decrypt).grid(
+            row=1, column=0, sticky="w", pady=(0, 10)
+        )
+
+        output_frame = ttk.Labelframe(tab, text="Mensaje recuperado y proceso", padding=10)
+        output_frame.grid(row=2, column=0, sticky="nsew")
+        output_frame.columnconfigure(0, weight=1)
+        output_frame.rowconfigure(4, weight=1)
+        ttk.Label(
+            output_frame,
+            textvariable=self.decryption_status,
+            style="Status.TLabel",
+            wraplength=780,
+        ).grid(row=0, column=0, sticky="w", pady=(0, 6))
+        ttk.Label(
+            output_frame,
+            textvariable=self.decryption_summary,
+            style="Help.TLabel",
+            wraplength=780,
+        ).grid(row=1, column=0, sticky="w", pady=(0, 7))
+        ttk.Label(output_frame, text="Mensaje M (se conservan todos sus espacios):").grid(
+            row=2, column=0, sticky="w"
+        )
+        self.plaintext_output = ScrolledText(
+            output_frame, height=3, font=("Consolas", 11), wrap="word", state="disabled"
+        )
+        self.plaintext_output.grid(row=3, column=0, sticky="ew", pady=(3, 8))
+
+        self.decryption_detail_tabs = ttk.Notebook(output_frame)
+        self.decryption_detail_tabs.grid(row=4, column=0, sticky="nsew")
+        blocks_panel = ttk.Frame(self.decryption_detail_tabs)
+        trace_panel = ttk.Frame(self.decryption_detail_tabs)
+        self.decryption_detail_tabs.add(blocks_panel, text="Bloques recuperados")
+        self.decryption_detail_tabs.add(trace_panel, text="Cálculo modular")
+        blocks_panel.columnconfigure(0, weight=1)
+        blocks_panel.rowconfigure(0, weight=1)
+        trace_panel.columnconfigure(0, weight=1)
+        trace_panel.rowconfigure(0, weight=1)
+
+        columns = ("cipher", "plain", "ascii", "pair")
+        self.decryption_blocks_table = ttk.Treeview(
+            blocks_panel, columns=columns, show="headings", height=7
+        )
+        for column, heading, width in (
+            ("cipher", "c (6 dígitos)", 150),
+            ("plain", "m (6 dígitos)", 150),
+            ("ascii", "Códigos ASCII", 170),
+            ("pair", "Pareja", 130),
+        ):
+            self.decryption_blocks_table.heading(column, text=heading)
+            self.decryption_blocks_table.column(column, width=width, minwidth=100)
+        self.decryption_blocks_table.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(
+            blocks_panel, orient="vertical", command=self.decryption_blocks_table.yview
+        )
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.decryption_blocks_table.configure(yscrollcommand=scrollbar.set)
+        self.decryption_blocks_table.bind(
+            "<<TreeviewSelect>>", self._show_selected_decryption_trace
+        )
+
+        self.decryption_trace_output = ScrolledText(
+            trace_panel, font=("Consolas", 10), wrap="word", state="disabled"
+        )
+        self.decryption_trace_output.grid(row=0, column=0, sticky="nsew")
+        self._set_decryption_trace_output(
+            "Seleccione un bloque después de desencriptar."
         )
         ttk.Label(
-            tab,
-            text="La integración, los resultados y las validaciones de C y L están asignados al segundo integrante.",
+            output_frame,
+            text="La representación con repr hace visibles los espacios; seleccione una fila para ver c^d mod n.",
             style="Help.TLabel",
-        ).grid(row=3, column=0, sticky="w", pady=(8, 0))
+        ).grid(row=5, column=0, sticky="w", pady=(5, 0))
 
     def _encrypt(self) -> None:
         # end-1c elimina únicamente el salto implícito de Tk, no espacios del usuario.
@@ -284,6 +357,61 @@ class RSAApp(tk.Tk):
         for item in self.blocks_table.get_children():
             self.blocks_table.delete(item)
 
+    def _decrypt(self) -> None:
+        try:
+            result = decrypt(
+                self.ciphertext.get(),
+                self.length.get(),
+                self.p.get(),
+                self.q.get(),
+                self.e.get(),
+            )
+        except ValidationError as exc:
+            self._clear_decryption_output()
+            self.decryption_status.set(f"Error: {exc}")
+            messagebox.showerror("Datos inválidos", str(exc), parent=self)
+            return
+
+        self.latest_decryption_result = result
+        self.decryption_status.set("Mensaje desencriptado correctamente.")
+        self.decryption_summary.set(
+            f"n = {result.parameters.n} · φ = {result.parameters.phi} · d = {result.private_exponent} · "
+            f"llave privada = ({result.private_exponent}, {result.parameters.n})\n"
+            f"L = {result.original_length} · relleno retirado: "
+            f"{'sí' if result.filler_removed else 'no'} · "
+            f"antes de retirar relleno = {result.recovered_with_filler!r} · M = {result.message!r}"
+        )
+        self._set_plaintext_output(result.message)
+        for item in self.decryption_blocks_table.get_children():
+            self.decryption_blocks_table.delete(item)
+        for block in result.blocks:
+            self.decryption_blocks_table.insert(
+                "",
+                "end",
+                values=(
+                    block.ciphertext_six_digits,
+                    block.plaintext_six_digits,
+                    f"{block.ascii_codes[0]:03d} {block.ascii_codes[1]:03d}",
+                    repr(block.pair),
+                ),
+            )
+        if result.blocks:
+            first = self.decryption_blocks_table.get_children()[0]
+            self.decryption_blocks_table.selection_set(first)
+            self._show_selected_decryption_trace()
+        else:
+            self._set_decryption_trace_output("El mensaje vacío no produce bloques.")
+
+    def _clear_decryption_output(self) -> None:
+        self.latest_decryption_result = None
+        self.decryption_summary.set("Los resultados se mostrarán aquí.")
+        self._set_plaintext_output("")
+        self._set_decryption_trace_output(
+            "Seleccione un bloque después de desencriptar."
+        )
+        for item in self.decryption_blocks_table.get_children():
+            self.decryption_blocks_table.delete(item)
+
     def _set_cipher_output(self, value: str) -> None:
         self.cipher_output.configure(state="normal")
         self.cipher_output.delete("1.0", "end")
@@ -295,6 +423,18 @@ class RSAApp(tk.Tk):
         self.trace_output.delete("1.0", "end")
         self.trace_output.insert("1.0", value)
         self.trace_output.configure(state="disabled")
+
+    def _set_plaintext_output(self, value: str) -> None:
+        self.plaintext_output.configure(state="normal")
+        self.plaintext_output.delete("1.0", "end")
+        self.plaintext_output.insert("1.0", value)
+        self.plaintext_output.configure(state="disabled")
+
+    def _set_decryption_trace_output(self, value: str) -> None:
+        self.decryption_trace_output.configure(state="normal")
+        self.decryption_trace_output.delete("1.0", "end")
+        self.decryption_trace_output.insert("1.0", value)
+        self.decryption_trace_output.configure(state="disabled")
 
     def _show_selected_trace(self, _event: tk.Event | None = None) -> None:
         if self.latest_result is None or not self.blocks_table.selection():
@@ -331,6 +471,53 @@ class RSAApp(tk.Tk):
         lines.extend(("", f"Resultado: c = {ciphertext:06d}"))
         self._set_trace_output("\n".join(lines))
 
+    def _show_selected_decryption_trace(self, _event: tk.Event | None = None) -> None:
+        if (
+            self.latest_decryption_result is None
+            or not self.decryption_blocks_table.selection()
+        ):
+            return
+        selected = self.decryption_blocks_table.selection()[0]
+        block = self.latest_decryption_result.blocks[
+            self.decryption_blocks_table.index(selected)
+        ]
+        parameters = self.latest_decryption_result.parameters
+        exponent = self.latest_decryption_result.private_exponent
+        plaintext, steps = modular_power_trace(
+            block.numeric_ciphertext, exponent, parameters.n
+        )
+        lines = [
+            f"Bloque {block.position}: c = {block.ciphertext_six_digits}",
+            f"m = c^d mod n = {block.numeric_ciphertext}^{exponent} mod {parameters.n}",
+            "Inicio: acumulador = 1; base = c mod n.",
+            "",
+        ]
+        for step in steps:
+            lines.append(
+                f"Paso {step.iteration}: exponente = {step.exponent_before} "
+                f"({'impar' if step.multiplied else 'par'})"
+            )
+            if step.multiplied:
+                lines.append(
+                    f"  acumulador = ({step.result_before} × {step.base_before}) "
+                    f"mod {parameters.n} = {step.result_after}"
+                )
+            else:
+                lines.append(f"  acumulador = {step.result_before} (no se multiplica)")
+            lines.append(
+                f"  base siguiente = ({step.base_before} × {step.base_before}) "
+                f"mod {parameters.n} = {step.base_after}; "
+                f"exponente siguiente = {step.exponent_before // 2}"
+            )
+        lines.extend(
+            (
+                "",
+                f"Resultado: m = {plaintext:06d}",
+                f"ASCII: {block.ascii_codes[0]:03d} {block.ascii_codes[1]:03d} = {block.pair!r}",
+            )
+        )
+        self._set_decryption_trace_output("\n".join(lines))
+
     def _load_example(self) -> None:
         self._clear_output()
         self.p.set("367")
@@ -363,6 +550,10 @@ class RSAApp(tk.Tk):
         self.e.set(str(self.latest_result.parameters.e))
         self.ciphertext.set(self.latest_result.ciphertext)
         self.length.set(str(self.latest_result.original_length))
+        self._clear_decryption_output()
+        self.decryption_status.set(
+            "Datos transferidos desde la encriptación. Pulse Desencriptar."
+        )
         self.tabs.select(self.decryption_tab)
 
 
