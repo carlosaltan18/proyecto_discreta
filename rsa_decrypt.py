@@ -46,7 +46,7 @@ def parse_ciphertext(ciphertext: str, modulus: int) -> tuple[tuple[str, int], ..
     if not isinstance(ciphertext, str):
         raise ValidationError("El cifrado C debe ser texto.")
     if ciphertext == "":
-        return ()
+        raise ValidationError("C debe contener al menos un bloque de seis dígitos.")
 
     parsed_blocks: list[tuple[str, int]] = []
     for position, text in enumerate(ciphertext.split(" "), 1):
@@ -71,11 +71,6 @@ def validate_length(length: int | str, block_count: int) -> int:
     original_length = parse_integer(length, "L")
     if original_length < 0:
         raise ValidationError("L no puede ser negativa.")
-
-    if block_count == 0:
-        if original_length != 0:
-            raise ValidationError("Si C está vacío, L debe ser 0.")
-        return original_length
 
     even_length = 2 * block_count
     odd_length = even_length - 1

@@ -101,6 +101,7 @@ Los botones **Cargar ejemplo** preparan el caso de referencia del enunciado:
 - `126126 < n = p × q < 1000000`.
 - `e > 1` y `MCD(e, φ) = 1`.
 - Cada carácter de `M` debe estar entre ASCII 32 y 126.
+- `M` y `C` no pueden estar vacíos (el enunciado define `L` solo para `k > 0` bloques).
 - Cada bloque de `C` debe tener exactamente seis dígitos ASCII y cumplir `0 ≤ c < n`.
 - Con `k > 0` bloques, `L` debe ser `2k` o `2k - 1`.
 - Cada bloque recuperado debe producir dos códigos ASCII válidos.
@@ -116,7 +117,7 @@ Ejecute:
 py -m unittest discover -v
 ```
 
-Las pruebas cubren el ejemplo oficial, mensajes pares e impares, texto vacío, mayúsculas y minúsculas, números, símbolos, espacios consecutivos, iniciales y finales, ceros iniciales en `C`, parámetros inválidos, bloques mal formados, valores fuera de rango, longitudes incoherentes, ASCII inválido y relleno incorrecto.
+Las pruebas cubren el ejemplo oficial, mensajes pares e impares, rechazo de `M` y `C` vacíos, rechazo de enteros con guiones bajos o dígitos no ASCII, mayúsculas y minúsculas, números, símbolos, espacios consecutivos, iniciales y finales, ceros iniciales en `C`, parámetros inválidos, bloques mal formados, valores fuera de rango, longitudes incoherentes, ASCII inválido y relleno incorrecto.
 
 ## Entregables
 

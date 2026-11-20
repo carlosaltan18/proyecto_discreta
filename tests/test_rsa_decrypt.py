@@ -22,7 +22,6 @@ class DecryptionTests(unittest.TestCase):
 
     def test_round_trip_preserves_printable_text_and_spaces(self) -> None:
         messages = (
-            "",
             "AB",
             "RSA",
             "Az09!?[]{}~\\",
@@ -61,8 +60,21 @@ class DecryptionTests(unittest.TestCase):
         for length in (-1, 0, 5, "texto"):
             with self.subTest(length=length), self.assertRaises(ValidationError):
                 decrypt("026054 123875", length, *KEY)
-        with self.assertRaisesRegex(ValidationError, "C está vacío"):
-            decrypt("", 1, *KEY)
+
+    def test_rejects_empty_ciphertext(self) -> None:
+        for length in (0, 1):
+            with self.subTest(length=length), self.assertRaisesRegex(
+                ValidationError, "al menos un bloque"
+            ):
+                decrypt("", length, *KEY)
+
+    def test_rejects_non_decimal_integers(self) -> None:
+        for bad in ("1_7", "1 7", "+", "", "１７", "1.0"):
+            with self.subTest(e=bad), self.assertRaises(ValidationError):
+                decrypt("026054 123875", 3, 367, 373, bad)
+        for bad_length in ("1_0", "３"):
+            with self.subTest(length=bad_length), self.assertRaises(ValidationError):
+                decrypt("026054 123875", bad_length, *KEY)
 
     def test_rejects_invalid_recovered_ascii_and_missing_filler(self) -> None:
         with self.assertRaisesRegex(ValidationError, "ASCII 000"):

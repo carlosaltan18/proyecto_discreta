@@ -36,14 +36,14 @@ class EncryptionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError, "posición 2"):
             encrypt("A\n", *KEY)
 
-    def test_ascii_boundaries_and_empty_message(self) -> None:
+    def test_ascii_boundaries_and_empty_message_rejected(self) -> None:
         boundary = encrypt(" ~", *KEY)
         self.assertEqual(boundary.blocks[0].ascii_codes, (32, 126))
         self.assertEqual(boundary.blocks[0].plaintext_six_digits, "032126")
         self.assertEqual(len(boundary.ciphertext), 6)
 
-        empty = encrypt("", *KEY)
-        self.assertEqual((empty.original_length, empty.ciphertext, empty.blocks), (0, "", ()))
+        with self.assertRaisesRegex(ValidationError, "no puede estar vacío"):
+            encrypt("", *KEY)
 
 
 if __name__ == "__main__":

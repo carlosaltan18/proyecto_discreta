@@ -44,6 +44,8 @@ def validate_message(message: str) -> None:
     """Acepta solo ASCII imprimible: códigos 32 a 126 inclusive."""
     if not isinstance(message, str):
         raise ValidationError("El mensaje M debe ser texto.")
+    if message == "":
+        raise ValidationError("El mensaje M no puede estar vacío.")
     for position, char in enumerate(message, 1):
         code = ord(char)
         if code < 32 or code > 126:

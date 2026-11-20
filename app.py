@@ -131,7 +131,7 @@ class RSAApp(tk.Tk):
         self.copy_l_button.grid(row=0, column=3, padx=(8, 0))
         self.send_button = ttk.Button(
             buttons,
-            text="Pasar a parte 2",
+            text="Pasar a desencriptar",
             command=self._send_to_decryption,
             state="disabled",
         )
@@ -324,7 +324,6 @@ class RSAApp(tk.Tk):
         self._set_decryption_trace("Seleccione un bloque después de desencriptar.")
 
     def _encrypt(self) -> None:
-        # end-1c elimina únicamente el salto implícito de Tk, no espacios del usuario.
         message = self.message_input.get("1.0", "end-1c")
         try:
             result = encrypt(message, self.p.get(), self.q.get(), self.e.get())

@@ -42,10 +42,11 @@ def parse_integer(value: int | str, name: str) -> int:
         return value
     if not isinstance(value, str) or not value.strip():
         raise ValidationError(f"Ingrese un número entero para {name}.")
-    try:
-        return int(value.strip())
-    except ValueError as exc:
-        raise ValidationError(f"{name} debe ser un número entero.") from exc
+    text = value.strip()
+    digits = text[1:] if text[:1] in ("+", "-") else text
+    if not digits or not all("0" <= char <= "9" for char in digits):
+        raise ValidationError(f"{name} debe ser un número entero.")
+    return int(text)
 
 
 def is_prime(number: int) -> bool:
@@ -158,8 +159,6 @@ def validate_parameters(
     prime_q = parse_integer(q, "q")
     exponent = parse_integer(e, "e")
 
-    # El rango de n descarta de inmediato números enormes antes de probar
-    # primalidad por división de prueba (que bloquearía la interfaz).
     n = prime_p * prime_q
     if not 126126 < n < 1000000:
         raise ValidationError(
