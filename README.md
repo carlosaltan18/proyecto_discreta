@@ -1,47 +1,128 @@
 # Proyecto de criptografía RSA · MM2015
 
-Aplicación de escritorio en Python para encriptar y, tras integrar la segunda parte del equipo, desencriptar mensajes con RSA. La implementación sigue el enunciado de **Matemática Discreta 1, Parcial 3**.
+Aplicación de escritorio en Python con interfaz gráfica para encriptar y desencriptar mensajes de texto mediante RSA. Implementa la aritmética solicitada sin usar `math.gcd`, `pow` con módulo ni bibliotecas criptográficas.
 
-**Estado de esta rama:** parte 1 de `carlosaltan18` terminada. Incluye algoritmos matemáticos, validación de `p`, `q`, `e`, codificación ASCII por parejas, encriptación e interfaz de encriptación. La pestaña de desencriptación contiene las entradas y está pendiente de la parte 2.
+## Autor
 
-## Ejecutar
+- Carlos Altán (`carlosaltan18`)
 
-Se necesita Python 3.10 o posterior con Tkinter. No hay bibliotecas externas.
+Si la entrega se presenta en pareja, agregue aquí el nombre y carné del segundo integrante antes de enviarla.
+
+## Versión y dependencias
+
+- Desarrollado y probado con **Python 3.14.0** y **Tk 8.6**.
+- El código es compatible con Python 3.10 o posterior.
+- Usa únicamente módulos de la biblioteca estándar: `dataclasses`, `tkinter` y `unittest`.
+
+No se incluye `requirements.txt` porque no hay paquetes externos que instalar. Esta decisión sigue la indicación del enunciado para proyectos que usan solo la biblioteca estándar.
+
+## Ejecución
+
+Desde la carpeta del proyecto:
 
 ```powershell
 py app.py
 ```
 
-Si `py` no está disponible, use `python app.py`. Para correr las pruebas:
+En sistemas donde el lanzador `py` no esté disponible:
+
+```powershell
+python app.py
+```
+
+## Uso
+
+### Encriptar
+
+1. Abra la pestaña **Encriptar**.
+2. Ingrese los primos distintos `p` y `q`, el exponente público `e` y el mensaje `M`.
+3. Pulse **Encriptar**.
+4. La interfaz muestra `n`, `φ`, la llave pública `(e, n)`, la longitud original `L`, la presencia de relleno, los códigos ASCII, los bloques `m` y el cifrado `C`.
+5. Seleccione un bloque para consultar cada paso de la exponenciación modular.
+
+`C` y `L` se muestran por separado y pueden copiarse individualmente. **Pasar a desencriptar** lleva el último resultado válido a la segunda pestaña.
+
+### Desencriptar
+
+1. Abra la pestaña **Desencriptar**.
+2. Ingrese `p`, `q`, `e`, el cifrado `C` y su longitud original `L`.
+3. `C` debe contener bloques de exactamente seis dígitos separados por un único espacio.
+4. Pulse **Desencriptar**.
+5. La interfaz muestra `n`, `φ`, el exponente privado `d`, la llave privada `(d, n)`, el mensaje recuperado, los códigos ASCII y los bloques antes y después de la operación.
+
+El mensaje aparece también mediante `repr(...)` en el resumen para que sean visibles los espacios iniciales y finales.
+
+## Ejemplo completo
+
+Los botones **Cargar ejemplo** preparan el caso de referencia del enunciado:
+
+| Dato | Valor esperado |
+| --- | --- |
+| Mensaje original `M` | `RSA` |
+| `p`, `q`, `e` | `367`, `373`, `17` |
+| `n`, `φ(n)` | `136891`, `136152` |
+| `MCD(e, φ)` | `1` |
+| Longitud original `L` | `3` |
+| Mensaje con relleno | `RSA ` |
+| Bloques del mensaje | `082083 065032` |
+| Cifrado `C` | `026054 123875` |
+| Exponente privado `d` | `8009` |
+| Mensaje recuperado | `RSA` |
+
+## Representación y relleno
+
+- Se aceptan únicamente caracteres ASCII imprimibles con códigos entre 32 y 126.
+- Cada carácter se representa con tres dígitos y cada bloque contiene dos caracteres. Por ejemplo, `AB` produce `065066`.
+- `L` registra la cantidad de caracteres del mensaje original, incluidos todos sus espacios.
+- Si `L` es impar, se agrega exactamente un espacio al final antes de encriptar.
+- Al desencriptar se comprueba que ese último carácter sea un espacio y se retira únicamente ese carácter mediante una operación posicional. No se usa `strip()` ni `rstrip()`, por lo que los espacios reales se conservan.
+
+## Implementación matemática
+
+- `rsa_math.py`
+  - `is_prime`: comprobación propia de primalidad.
+  - `gcd`: algoritmo de Euclides para el máximo común divisor.
+  - `extended_gcd` y `modular_inverse`: inverso modular para obtener `d`.
+  - `modular_power`: exponenciación por cuadrados sucesivos con reducción módulo `n` durante el cálculo.
+  - `modular_power_trace`: registra los pasos mostrados en la interfaz.
+  - `validate_parameters`: valida `p`, `q`, `e`, `n` y `φ`.
+- `rsa_encrypt.py`
+  - `encrypt`: valida `M`, agrega relleno cuando corresponde, forma parejas ASCII y obtiene `C`.
+- `rsa_decrypt.py`
+  - `parse_ciphertext`: valida el formato y rango de cada bloque de `C`.
+  - `validate_length`: comprueba la coherencia de `L` con la cantidad de bloques.
+  - `decrypt`: calcula `d`, recupera los bloques ASCII y reconstruye exactamente `M`.
+- `app.py`: interfaz Tkinter para ambas operaciones y sus paneles de detalle.
+
+## Validaciones
+
+- `p`, `q`, `e` y `L` deben ser enteros.
+- `p` y `q` deben ser primos distintos.
+- `126126 < n = p × q < 1000000`.
+- `e > 1` y `MCD(e, φ) = 1`.
+- Cada carácter de `M` debe estar entre ASCII 32 y 126.
+- Cada bloque de `C` debe tener exactamente seis dígitos ASCII y cumplir `0 ≤ c < n`.
+- Con `k > 0` bloques, `L` debe ser `2k` o `2k - 1`.
+- Cada bloque recuperado debe producir dos códigos ASCII válidos.
+- Si `L` es impar, el último carácter recuperado debe ser el espacio de relleno.
+
+Los errores se presentan mediante mensajes comprensibles y se limpia cualquier resultado anterior para evitar que parezca válido.
+
+## Pruebas
+
+Ejecute:
 
 ```powershell
 py -m unittest discover -v
 ```
 
-## Probar la parte 1
+Las pruebas cubren el ejemplo oficial, mensajes pares e impares, texto vacío, mayúsculas y minúsculas, números, símbolos, espacios consecutivos, iniciales y finales, ceros iniciales en `C`, parámetros inválidos, bloques mal formados, valores fuera de rango, longitudes incoherentes, ASCII inválido y relleno incorrecto.
 
-En la pestaña **Encriptar**, pulse **Cargar ejemplo** y luego **Encriptar**. El resultado esperado es:
+## Entregables
 
-| Dato | Valor |
-| --- | --- |
-| Mensaje `M` | `RSA` |
-| `p`, `q`, `e` | `367`, `373`, `17` |
-| `n`, `φ(n)` | `136891`, `136152` |
-| Longitud original `L` | `3` |
-| Bloques antes de cifrar | `082083 065032` |
-| Cifrado `C` | `026054 123875` |
+- Código fuente completo e interfaz: incluidos en este repositorio.
+- Dependencias: no se requieren paquetes externos.
+- Documento de lectura rápida: este README.
+- Video demostrativo: pendiente de agregar por el equipo antes de la entrega.
 
-Como `L` es impar, el programa agrega exactamente un espacio final antes de agrupar los caracteres. `C` y `L` aparecen por separado y tienen botones para copiarlos al portapapeles. El botón **Pasar a parte 2** lleva el último cifrado, su longitud y sus parámetros a la pestaña que completará el otro integrante.
-
-En **Bloques y códigos ASCII** se ven las parejas de caracteres, los códigos y los bloques antes y después de cifrar. Al seleccionar una fila, **Cálculo modular** muestra cada paso de los cuadrados sucesivos que produjo ese bloque cifrado.
-
-## Archivos y contrato entre las partes
-
-- `rsa_math.py`: `validate_parameters(p, q, e)` devuelve `RSAParameters` con `p`, `q`, `e`, `n` y `phi`. También implementa `is_prime`, `gcd`, `modular_inverse`, `modular_power` y `modular_power_trace` para explicar el cálculo. Los errores de entrada lanzan `ValidationError`.
-- `rsa_encrypt.py`: `encrypt(message, p, q, e)` devuelve `EncryptionResult` con `ciphertext`, `original_length`, `filler_added`, `padded_message`, `blocks` y `parameters`.
-- `app.py`: interfaz Tkinter. La segunda parte conectará la pestaña de desencriptación a su módulo de lógica.
-- `tests/`: pruebas de los algoritmos y de la encriptación.
-
-La documentación local de distribución del trabajo está en `docs/`. Esa carpeta figura en `.gitignore` por solicitud del equipo y **no forma parte del repositorio ni de la PR**; hay que compartir sus archivos directamente con el segundo integrante.
-
-> Este RSA se implementa con los parámetros pequeños exigidos por el curso y sirve para aprendizaje, no para proteger información real.
+> Los parámetros pequeños exigidos por el curso hacen que esta aplicación sea educativa; no debe usarse para proteger información real.
