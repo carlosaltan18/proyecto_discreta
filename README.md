@@ -4,17 +4,13 @@ Aplicación de escritorio en Python con interfaz gráfica para encriptar y desen
 
 ## Autor
 
-- Carlos Altán (`carlosaltan18`)
-
-Si la entrega se presenta en pareja, agregue aquí el nombre y carné del segundo integrante antes de enviarla.
-
+- Carlos Altán 25772
+- Sergio Tepaz 25787
 ## Versión y dependencias
 
 - Desarrollado y probado con **Python 3.14.0** y **Tk 8.6**.
 - El código es compatible con Python 3.10 o posterior.
-- Usa únicamente módulos de la biblioteca estándar: `dataclasses`, `tkinter` y `unittest`.
-
-No se incluye `requirements.txt` porque no hay paquetes externos que instalar. Esta decisión sigue la indicación del enunciado para proyectos que usan solo la biblioteca estándar.
+- Usa únicamente módulos de la biblioteca estándar: `dataclasses`, `tkinter` y `unittest`..
 
 ## Ejecución
 
@@ -118,12 +114,3 @@ py -m unittest discover -v
 ```
 
 Las pruebas cubren el ejemplo oficial, mensajes pares e impares, rechazo de `M` y `C` vacíos, rechazo de enteros con guiones bajos o dígitos no ASCII, mayúsculas y minúsculas, números, símbolos, espacios consecutivos, iniciales y finales, ceros iniciales en `C`, parámetros inválidos, bloques mal formados, valores fuera de rango, longitudes incoherentes, ASCII inválido y relleno incorrecto.
-
-## Entregables
-
-- Código fuente completo e interfaz: incluidos en este repositorio.
-- Dependencias: no se requieren paquetes externos.
-- Documento de lectura rápida: este README.
-- Video demostrativo: pendiente de agregar por el equipo antes de la entrega.
-
-> Los parámetros pequeños exigidos por el curso hacen que esta aplicación sea educativa; no debe usarse para proteger información real.

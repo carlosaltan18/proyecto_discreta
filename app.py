@@ -1,4 +1,3 @@
-"""Interfaz gráfica completa para encriptar y desencriptar con RSA."""
 
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -10,8 +9,6 @@ from rsa_math import ValidationError, modular_power_trace
 
 
 class RSAApp(tk.Tk):
-    """Aplicación de escritorio que comparte entradas con ambas operaciones."""
-
     def __init__(self) -> None:
         super().__init__()
         self.title("MM2015 · Proyecto de criptografía RSA")
@@ -50,8 +47,28 @@ class RSAApp(tk.Tk):
         style.configure("TLabelframe", background="#f4f7fb")
         style.configure("TLabelframe.Label", background="#f4f7fb", font=("Segoe UI", 11, "bold"))
         style.configure("TButton", font=("Segoe UI", 10), padding=7)
-        style.configure("TNotebook", background="#f4f7fb")
-        style.configure("TNotebook.Tab", font=("Segoe UI", 10), padding=(15, 7))
+        style.configure("TNotebook", background="#f4f7fb", borderwidth=0, tabmargins=(0, 0, 0, 0))
+        style.configure(
+            "TNotebook.Tab",
+            font=("Segoe UI", 10, "bold"),
+            padding=(22, 9),
+            background="#dde6f2",
+            foreground="#526176",
+            bordercolor="#c3d0e2",
+            lightcolor="#dde6f2",
+            darkcolor="#dde6f2",
+            focuscolor="#f4f7fb",
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[("selected", "#174b85"), ("active", "#c9d8ec")],
+            foreground=[("selected", "#ffffff"), ("active", "#174b85")],
+            lightcolor=[("selected", "#174b85")],
+            darkcolor=[("selected", "#174b85")],
+            bordercolor=[("selected", "#174b85")],
+            padding=[("selected", (22, 9))],
+            expand=[("selected", (0, 0, 0, 0))],
+        )
         style.configure("Treeview", font=("Consolas", 10), rowheight=26)
         style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
 
@@ -69,7 +86,7 @@ class RSAApp(tk.Tk):
         )
         ttk.Label(
             shell,
-            text="MM2015 · ASCII imprimible · dos caracteres por bloque",
+            text="ASCII imprimible · dos caracteres por bloque",
             style="Help.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(0, 12))
 
