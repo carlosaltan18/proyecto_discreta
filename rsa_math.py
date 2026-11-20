@@ -1,8 +1,4 @@
-"""Algoritmos matemáticos del proyecto RSA de MM2015.
-
-No se emplean math.gcd, pow con módulo ni bibliotecas criptográficas.
-"""
-
+import sys
 from dataclasses import dataclass
 
 
@@ -23,15 +19,14 @@ class RSAParameters:
 
 @dataclass(frozen=True)
 class ModularPowerStep:
-    """Estado de una iteración de exponenciación por cuadrados sucesivos."""
+    """Una llamada recursiva de mpower2, registrada al regresar con su resultado."""
 
-    iteration: int
-    exponent_before: int
-    result_before: int
-    base_before: int
-    multiplied: bool
-    result_after: int
-    base_after: int
+    level: int
+    exponent: int
+    sub_exponent: int
+    sub_result: int
+    odd: bool
+    result: int
 
 
 def parse_integer(value: int | str, name: str) -> int:
@@ -75,7 +70,7 @@ def gcd(a: int, b: int) -> int:
 
 
 def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
-    """Devuelve (mcd, x, y) tal que a*x + b*y = mcd."""
+    """Devuelve (mcd, x, y) para que a*x + b*y = mcd."""
     old_r, r = a, b
     old_x, x = 1, 0
     old_y, y = 0, 1
@@ -89,30 +84,29 @@ def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
 
 
 def modular_inverse(value: int, modulus: int) -> int:
-    """Obtiene el inverso módulo phi con Euclides extendido."""
+    """Obtiene el inverso modulo phi con Euclides extendido."""
     if modulus <= 1:
-        raise ValidationError("El módulo del inverso debe ser mayor que 1.")
+        raise ValidationError("El modulo del inverso debe ser mayor que 1.")
     divisor, coefficient, _ = extended_gcd(value, modulus)
     if divisor != 1:
-        raise ValidationError(f"{value} no tiene inverso módulo {modulus}.")
+        raise ValidationError(f"{value} no tiene inverso modulo {modulus}.")
     return coefficient % modulus
 
 
 def modular_power(base: int, exponent: int, modulus: int) -> int:
-    """Exponenciación binaria con reducción de módulo en cada paso."""
-    return _calculate_modular_power(base, exponent, modulus, None)
+    return _mpower2_entry(base, exponent, modulus, None)
 
 
 def modular_power_trace(
     base: int, exponent: int, modulus: int
 ) -> tuple[int, tuple[ModularPowerStep, ...]]:
-    """Calcula la misma potencia y devuelve cada paso para explicarla."""
+    """Calcula la misma potencia y devuelve la llamada."""
     steps: list[ModularPowerStep] = []
-    result = _calculate_modular_power(base, exponent, modulus, steps)
+    result = _mpower2_entry(base, exponent, modulus, steps)
     return result, tuple(steps)
 
 
-def _calculate_modular_power(
+def _mpower2_entry(
     base: int,
     exponent: int,
     modulus: int,
@@ -122,32 +116,31 @@ def _calculate_modular_power(
         raise ValueError("El exponente no puede ser negativo.")
     if modulus <= 0:
         raise ValueError("El módulo debe ser positivo.")
+    sys.setrecursionlimit(max(sys.getrecursionlimit(), exponent.bit_length() + 200))
+    return _mpower2(base % modulus, exponent, modulus, steps, 1)
 
-    result = 1 % modulus
-    base %= modulus
-    iteration = 0
-    while exponent:
-        iteration += 1
-        exponent_before = exponent
-        result_before = result
-        base_before = base
-        multiplied = exponent % 2 == 1
-        if multiplied:
-            result = (result * base) % modulus
-        base = (base * base) % modulus
-        exponent //= 2
-        if steps is not None:
-            steps.append(
-                ModularPowerStep(
-                    iteration,
-                    exponent_before,
-                    result_before,
-                    base_before,
-                    multiplied,
-                    result,
-                    base,
-                )
-            )
+
+def _mpower2(
+    base: int,
+    exponent: int,
+    modulus: int,
+    steps: list[ModularPowerStep] | None,
+    level: int,
+) -> int:
+    if exponent == 0:
+        return 1 % modulus
+
+    sub_exponent = exponent // 2
+    sub_result = _mpower2(base, sub_exponent, modulus, steps, level + 1)
+    odd = exponent % 2 == 1
+    if odd:
+        result = (base * sub_result * sub_result) % modulus
+    else:
+        result = (sub_result * sub_result) % modulus
+    if steps is not None:
+        steps.append(
+            ModularPowerStep(level, exponent, sub_exponent, sub_result, odd, result)
+        )
     return result
 
 

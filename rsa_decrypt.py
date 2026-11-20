@@ -1,4 +1,3 @@
-"""Validación del cifrado y desencriptación RSA del mensaje."""
 
 from dataclasses import dataclass
 
@@ -30,7 +29,7 @@ class DecryptionBlock:
 
 @dataclass(frozen=True)
 class DecryptionResult:
-    """Resultado y detalle necesarios para presentar la desencriptación."""
+    """Resultado y detalle necesarios para la desencriptación."""
 
     parameters: RSAParameters
     private_exponent: int

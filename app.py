@@ -8,10 +8,33 @@ from rsa_encrypt import EncryptionResult, encrypt
 from rsa_math import ValidationError, modular_power_trace
 
 
+def _power_trace_lines(steps, base: int, modulus: int) -> list[str]:
+    exponents = [step.exponent for step in reversed(steps)] + [0]
+    lines = [
+        "mpower2(b, n, m): si n = 0 devuelve 1; si n es par, [mpower2(b, n/2, m)]² mod m;",
+        "si n es impar, b · [mpower2(b, (n−1)/2, m)]² mod m.",
+        f"b = {base} mod {modulus} · exponentes: " + " → ".join(map(str, exponents)),
+        "",
+        "mpower2(b, 0) = 1",
+    ]
+    for step in steps:
+        if step.odd:
+            lines.append(
+                f"mpower2(b, {step.exponent}) impar: {base} · {step.sub_result}² "
+                f"mod {modulus} = {step.result}"
+            )
+        else:
+            lines.append(
+                f"mpower2(b, {step.exponent}) par: {step.sub_result}² "
+                f"mod {modulus} = {step.result}"
+            )
+    return lines
+
+
 class RSAApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("MM2015 · Proyecto de criptografía RSA")
+        self.title("Proyecto de criptografía RSA")
         self.geometry("1040x780")
         self.minsize(850, 650)
 
@@ -417,26 +440,9 @@ class RSAApp(tk.Tk):
         lines = [
             f"Bloque {block.position}: {block.pair!r} = {block.plaintext_six_digits}",
             f"c = m^e mod n = {block.numeric_plaintext}^{parameters.e} mod {parameters.n}",
-            "Inicio: acumulador = 1; base = m mod n.",
             "",
         ]
-        for step in steps:
-            lines.append(
-                f"Paso {step.iteration}: exponente = {step.exponent_before} "
-                f"({'impar' if step.multiplied else 'par'})"
-            )
-            if step.multiplied:
-                lines.append(
-                    f"  acumulador = ({step.result_before} × {step.base_before}) "
-                    f"mod {parameters.n} = {step.result_after}"
-                )
-            else:
-                lines.append(f"  acumulador = {step.result_before} (no se multiplica)")
-            lines.append(
-                f"  base siguiente = ({step.base_before} × {step.base_before}) "
-                f"mod {parameters.n} = {step.base_after}; "
-                f"exponente siguiente = {step.exponent_before // 2}"
-            )
+        lines.extend(_power_trace_lines(steps, block.numeric_plaintext, parameters.n))
         lines.extend(("", f"Resultado: c = {ciphertext:06d}"))
         self._set_trace_output("\n".join(lines))
 
@@ -545,26 +551,11 @@ class RSAApp(tk.Tk):
             f"Bloque {block.position}: c = {block.ciphertext_text}",
             f"m = c^d mod n = {block.numeric_ciphertext}^{result.private_exponent} "
             f"mod {result.parameters.n}",
-            "Inicio: acumulador = 1; base = c mod n.",
             "",
         ]
-        for step in steps:
-            lines.append(
-                f"Paso {step.iteration}: exponente = {step.exponent_before} "
-                f"({'impar' if step.multiplied else 'par'})"
-            )
-            if step.multiplied:
-                lines.append(
-                    f"  acumulador = ({step.result_before} × {step.base_before}) "
-                    f"mod {result.parameters.n} = {step.result_after}"
-                )
-            else:
-                lines.append(f"  acumulador = {step.result_before} (no se multiplica)")
-            lines.append(
-                f"  base siguiente = ({step.base_before} × {step.base_before}) "
-                f"mod {result.parameters.n} = {step.base_after}; "
-                f"exponente siguiente = {step.exponent_before // 2}"
-            )
+        lines.extend(
+            _power_trace_lines(steps, block.numeric_ciphertext, result.parameters.n)
+        )
         lines.extend(
             (
                 "",

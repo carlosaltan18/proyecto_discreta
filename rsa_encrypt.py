@@ -1,4 +1,3 @@
-"""Codificación ASCII por parejas y encriptación RSA del mensaje."""
 
 from dataclasses import dataclass
 
@@ -7,8 +6,6 @@ from rsa_math import RSAParameters, ValidationError, modular_power, validate_par
 
 @dataclass(frozen=True)
 class EncryptionBlock:
-    """Datos de una pareja antes y después de la encriptación."""
-
     position: int
     pair: str
     ascii_codes: tuple[int, int]
@@ -26,7 +23,7 @@ class EncryptionBlock:
 
 @dataclass(frozen=True)
 class EncryptionResult:
-    """Información necesaria para mostrar C, L y explicar el cálculo."""
+    """Información necesaria para mostrar C, L"""
 
     parameters: RSAParameters
     original_message: str
@@ -41,7 +38,6 @@ class EncryptionResult:
 
 
 def validate_message(message: str) -> None:
-    """Acepta solo ASCII imprimible: códigos 32 a 126 inclusive."""
     if not isinstance(message, str):
         raise ValidationError("El mensaje M debe ser texto.")
     if message == "":

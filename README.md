@@ -1,16 +1,17 @@
 # Proyecto de criptografía RSA · MM2015
 
-Aplicación de escritorio en Python con interfaz gráfica para encriptar y desencriptar mensajes de texto mediante RSA. Implementa la aritmética solicitada sin usar `math.gcd`, `pow` con módulo ni bibliotecas criptográficas.
+Aplicación en Python con interfaz gráfica para encriptar y desencriptar mensajes de texto mediante RSA. 
 
-## Autor
+## Autores
 
 - Carlos Altán 25772
 - Sergio Tepaz 25787
+
 ## Versión y dependencias
 
+- Versión de Python recomendada: **3.10 o superior** (con Tkinter, que viene incluido en la instalación estándar).
 - Desarrollado y probado con **Python 3.14.0** y **Tk 8.6**.
-- El código es compatible con Python 3.10 o posterior.
-- Usa únicamente módulos de la biblioteca estándar: `dataclasses`, `tkinter` y `unittest`..
+- Usa únicamente módulos de la biblioteca estándar: `dataclasses`, `sys`, `tkinter` y `unittest`.
 
 ## Ejecución
 
@@ -79,8 +80,8 @@ Los botones **Cargar ejemplo** preparan el caso de referencia del enunciado:
   - `is_prime`: comprobación propia de primalidad.
   - `gcd`: algoritmo de Euclides para el máximo común divisor.
   - `extended_gcd` y `modular_inverse`: inverso modular para obtener `d`.
-  - `modular_power`: exponenciación por cuadrados sucesivos con reducción módulo `n` durante el cálculo.
-  - `modular_power_trace`: registra los pasos mostrados en la interfaz.
+  - `modular_power`: algoritmo recursivo `mpower2` visto en clase (si el exponente es par, `[mpower2(b, n/2, m)]² mod m`; si es impar, `b·[mpower2(b, (n−1)/2, m)]² mod m`), con reducción módulo `n` en cada paso y complejidad O(log n).
+  - `modular_power_trace`: registra las llamadas recursivas mostradas en la interfaz.
   - `validate_parameters`: valida `p`, `q`, `e`, `n` y `φ`.
 - `rsa_encrypt.py`
   - `encrypt`: valida `M`, agrega relleno cuando corresponde, forma parejas ASCII y obtiene `C`.
@@ -104,13 +105,3 @@ Los botones **Cargar ejemplo** preparan el caso de referencia del enunciado:
 - Si `L` es impar, el último carácter recuperado debe ser el espacio de relleno.
 
 Los errores se presentan mediante mensajes comprensibles y se limpia cualquier resultado anterior para evitar que parezca válido.
-
-## Pruebas
-
-Ejecute:
-
-```powershell
-py -m unittest discover -v
-```
-
-Las pruebas cubren el ejemplo oficial, mensajes pares e impares, rechazo de `M` y `C` vacíos, rechazo de enteros con guiones bajos o dígitos no ASCII, mayúsculas y minúsculas, números, símbolos, espacios consecutivos, iniciales y finales, ceros iniciales en `C`, parámetros inválidos, bloques mal formados, valores fuera de rango, longitudes incoherentes, ASCII inválido y relleno incorrecto.

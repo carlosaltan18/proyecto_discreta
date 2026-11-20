@@ -37,23 +37,43 @@ class MathTests(unittest.TestCase):
         self.assertEqual(parameters.e, parameters.phi + 1)
         self.assertEqual(gcd(parameters.e, parameters.phi), 1)
 
-    def test_modular_trace_explains_the_same_calculation(self) -> None:
+    def test_modular_trace_follows_the_recursive_mpower2_of_class(self) -> None:
         modulus = 136891
         result, steps = modular_power_trace(82083, 17, modulus)
         self.assertEqual(result, modular_power(82083, 17, modulus))
         self.assertEqual(result, 26054)
-        self.assertEqual(len(steps), 5)
-        self.assertEqual(steps[0].exponent_before, 17)
+        self.assertEqual([step.exponent for step in steps], [1, 2, 4, 8, 17])
+        self.assertEqual(steps[-1].result, result)
         for step in steps:
-            expected_result = (
-                (step.result_before * step.base_before) % modulus
-                if step.multiplied
-                else step.result_before
-            )
-            self.assertEqual(step.result_after, expected_result)
-            self.assertEqual(step.base_after, (step.base_before * step.base_before) % modulus)
+            square = (step.sub_result * step.sub_result) % modulus
+            expected = (82083 * square) % modulus if step.odd else square
+            self.assertEqual(step.result, expected)
+            self.assertEqual(step.sub_exponent, step.exponent // 2)
+            self.assertEqual(step.odd, step.exponent % 2 == 1)
         self.assertEqual(modular_power_trace(7, 0, modulus), (1, ()))
 
+    def test_modular_power_matches_the_naive_algorithm_of_class(self) -> None:
+        for base, exponent, modulus in (
+            (7, 24, 11),
+            (79, 79, 100),
+            (1234, 13, 3337),
+            (2779, 2477, 3337),
+            (5, 4, 23),
+            (123456, 1000, 999983),
+        ):
+            expected = 1 % modulus
+            for _ in range(exponent):
+                expected = (expected * (base % modulus)) % modulus
+            with self.subTest(base=base, exponent=exponent, modulus=modulus):
+                self.assertEqual(modular_power(base, exponent, modulus), expected)
+
+    def test_modular_power_supports_very_large_exponents(self) -> None:
+        self.assertEqual(modular_power(3, 10**400, 7), 4)
+
+    def test_class_rsa_example_with_small_primes(self) -> None:
+        self.assertEqual(modular_inverse(13, 3220), 2477)
+        self.assertEqual(modular_power(1234, 13, 3337), 2779)
+        self.assertEqual(modular_power(2779, 2477, 3337), 1234)
 
 if __name__ == "__main__":
     unittest.main()
