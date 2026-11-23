@@ -15,6 +15,22 @@ Aplicación en Python con interfaz gráfica para encriptar y desencriptar mensaj
 
 ## Ejecución
 
+### Opciones para el catedrático
+
+- **Windows sin instalar Python:** descargue el artefacto `MM2015-RSA-Windows` de la última ejecución correcta de [GitHub Actions](https://github.com/carlosaltan18/proyecto_discreta/actions/workflows/publicar.yml), descomprímalo y abra `MM2015-RSA.exe`. Conserva la interfaz original Tkinter. También se genera localmente en `dist/MM2015-RSA.exe`.
+- **Navegador:** una vez activado GitHub Pages con fuente **GitHub Actions** y publicado este cambio en `main`, abra `https://carlosaltan18.github.io/proyecto_discreta/`. La versión web está en `web/` y permite encriptar, desencriptar, ver bloques y pasos. También puede abrir `web/index.html` localmente para usarla sin conexión.
+
+La versión web ejecuta RSA en JavaScript dentro del navegador y no necesita un servidor de Python. GitHub Pages sirve archivos estáticos en el plan gratuito para repositorios públicos; la disponibilidad del proveedor depende de GitHub y no puede prometerse al 100 %. El `.exe` y el HTML local son alternativas si el sitio no está disponible. Las dos interfaces aceptan mensajes no vacíos y las mismas reglas de `C`, `L` y ASCII.
+
+Para reconstruir el ejecutable en Windows con Python 3.14:
+
+```powershell
+py -m pip install pyinstaller==6.22.3
+py -m PyInstaller --noconfirm --clean --onefile --windowed --name MM2015-RSA app.py
+```
+
+PyInstaller solo se necesita para crear el `.exe`; el usuario final no instala Python ni dependencias. El flujo `.github/workflows/publicar.yml` genera el ejecutable descargable y publica la web en cada cambio a `main`. El artefacto de Actions tiene retención limitada por GitHub: para una entrega permanente del archivo, adjúntelo además a una Release del repositorio o comparta el `.exe` generado localmente.
+
 Desde la carpeta del proyecto:
 
 ```powershell
