@@ -1,8 +1,10 @@
 # Proyecto de criptografía RSA · MM2015
 
-Aplicación en Python con interfaz gráfica para encriptar y desencriptar mensajes de texto mediante RSA. 
+Aplicación en Python con interfaz gráfica para encriptar y desencriptar mensajes de texto mediante RSA.
 
 ## Autores
+
+Grupo No. 4
 
 - Carlos Altán 25772
 - Sergio Tepaz 25787
@@ -11,13 +13,13 @@ Aplicación en Python con interfaz gráfica para encriptar y desencriptar mensaj
 
 - Versión de Python recomendada: **3.10 o superior** (con Tkinter, que viene incluido en la instalación estándar).
 - Desarrollado y probado con **Python 3.14.0** y **Tk 8.6**.
-- Usa únicamente módulos de la biblioteca estándar: `dataclasses`, `sys`, `tkinter` y `unittest`.
+- Usa únicamente módulos de la biblioteca estándar: `dataclasses`, `sys`, `tkinter` y `unittest`. No hay `requirements.txt` porque no se necesita instalar nada.
 
 ## Ejecución
 
 ### Opciones para el catedrático
 
-- **Windows sin instalar Python:** descargue [MM2015-RSA.exe](https://github.com/carlosaltan18/proyecto_discreta/releases/download/v1.0-accesible/MM2015-RSA.exe) de la [Release v1.0-accesible](https://github.com/carlosaltan18/proyecto_discreta/releases/tag/v1.0-accesible) y ábralo. Conserva la interfaz original Tkinter. También se genera localmente en `dist/MM2015-RSA.exe` y como artefacto de [GitHub Actions](https://github.com/carlosaltan18/proyecto_discreta/actions/workflows/publicar.yml).
+- **Windows sin instalar Python:** descargue [MM2015-RSA.exe](https://github.com/carlosaltan18/proyecto_discreta/releases/download/v1.1-zip/MM2015-RSA.exe) de la [Release v1.1-zip](https://github.com/carlosaltan18/proyecto_discreta/releases/tag/v1.1-zip) y ábralo. Conserva la interfaz original Tkinter. También se genera localmente en `dist/MM2015-RSA.exe` y como artefacto de [GitHub Actions](https://github.com/carlosaltan18/proyecto_discreta/actions/workflows/publicar.yml).
 - **Navegador:** abra [la versión web](https://stepaz-2022164.github.io/mm2015-rsa-web/). El código fuente de esta versión también está en el repositorio público [mm2015-rsa-web](https://github.com/stepaz-2022164/mm2015-rsa-web). La versión web está en `web/` y permite encriptar, desencriptar, ver bloques y pasos. También puede abrir `web/index.html` localmente para usarla sin conexión.
 
 La versión web ejecuta RSA en JavaScript dentro del navegador y no necesita un servidor de Python. GitHub Pages sirve archivos estáticos en el plan gratuito para repositorios públicos; la disponibilidad del proveedor depende de GitHub y no puede prometerse al 100 %. El `.exe` y el HTML local son alternativas si el sitio no está disponible. Las dos interfaces aceptan mensajes no vacíos y las mismas reglas de `C`, `L` y ASCII.
@@ -51,7 +53,7 @@ python app.py
 2. Ingrese los primos distintos `p` y `q`, el exponente público `e` y el mensaje `M`.
 3. Pulse **Encriptar**.
 4. La interfaz muestra `n`, `φ`, la llave pública `(e, n)`, la longitud original `L`, la presencia de relleno, los códigos ASCII, los bloques `m` y el cifrado `C`.
-5. Seleccione un bloque para consultar cada paso de la exponenciación modular.
+5. Seleccione un bloque para consultar las llamadas recursivas de la exponenciación modular.
 
 `C` y `L` se muestran por separado y pueden copiarse individualmente. **Pasar a desencriptar** lleva el último resultado válido a la segunda pestaña.
 
@@ -121,3 +123,30 @@ Los botones **Cargar ejemplo** preparan el caso de referencia del enunciado:
 - Si `L` es impar, el último carácter recuperado debe ser el espacio de relleno.
 
 Los errores se presentan mediante mensajes comprensibles y se limpia cualquier resultado anterior para evitar que parezca válido.
+
+## Pruebas
+
+Para ejecutar todas las pruebas automáticas, desde la carpeta del proyecto:
+
+```powershell
+py -m unittest discover -v
+```
+
+O, si el lanzador `py` no está disponible:
+
+```powershell
+python -m unittest discover -v
+```
+
+Al final debe aparecer `OK`. Las pruebas están en la carpeta `tests/` y cubren:
+
+- el ejemplo oficial (`RSA`, `d = 8009`, `C = 026054 123875`) y el ejemplo visto en clase (`p = 47`, `q = 71`, `d = 2477`, `c = 2779`);
+- mensajes de longitud par e impar, mayúsculas, minúsculas, números y signos, y los límites ASCII 32 y 126;
+- espacios iniciales, finales y consecutivos, y bloques cifrados con ceros iniciales;
+- parámetros RSA inválidos, `n` fuera de rango y `e` no coprimo con `φ`;
+- caracteres no admitidos, bloques de `C` mal formados, valores `c ≥ n` y longitudes `L` inconsistentes;
+- códigos ASCII recuperados fuera de rango, relleno impar incorrecto y exponentes muy grandes en la exponenciación modular.
+
+## Video demostrativo
+
+El enlace al video está en el archivo `linkVideo.txt`.

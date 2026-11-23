@@ -240,7 +240,7 @@ class RSAApp(tk.Tk):
         self._set_trace_output("Seleccione un bloque después de encriptar.")
         ttk.Label(
             output_frame,
-            text="Seleccione una fila para ver sus cuadrados sucesivos. Las comillas hacen visibles los espacios.",
+            text="Seleccione una fila para ver las llamadas recursivas de mpower2. Las comillas hacen visibles los espacios.",
             style="Help.TLabel",
         ).grid(row=5, column=0, sticky="w", pady=(5, 0))
 
